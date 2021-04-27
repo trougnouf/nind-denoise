@@ -14,7 +14,7 @@ Requirements: pytorch [, exiftool]
 python3 denoise_image.py --cs <CS> --ucs <UCS> --model_path models/[model.pth] -i <input_image_path> [-o output_image_path]
 ```
 eg (**recommended for most applications**):
-python3 denoise_image.py --cs 256 --ucs 192 --model_path "models/2019-02-18T20:10_run_nn.py_--time_limit_259200_--batch_size_94_--test_reserve_ursulines-red_stefantiek_ursulines-building_MuseeL-Bobo_CourtineDeVillersDebris_MuseeL-Bobo-C500D_--skip_sizecheck_--lr_3e-4" -i <input_image_path> [-o output_image_path]
+`python3 denoise_image.py --cs 256 --ucs 192 --model_path "models/2019-02-18T20:10_run_nn.py_--time_limit_259200_--batch_size_94_--test_reserve_ursulines-red_stefantiek_ursulines-building_MuseeL-Bobo_CourtineDeVillersDebris_MuseeL-Bobo-C500D_--skip_sizecheck_--lr_3e-4/model_257.pth" -i <input_image_path> [-o output_image_path]`
 
 Note that you should run this on images which have not been sharpened, and apply sharpening then.
 
