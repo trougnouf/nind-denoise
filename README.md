@@ -4,7 +4,7 @@ Master thesis on natural image noise removal using Convolutional Neural Networks
 
 Much lighter version of https://github.com/trougnouf/mthesis-denoise
 
-TODO: tensorflow implementation (has C API which would work with darktable),
+TODO: C implementation that can be included in darktable, find lighter functional network architecture.
 
 ## test
 
