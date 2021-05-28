@@ -4,7 +4,7 @@ Master thesis on natural image noise removal using Convolutional Neural Networks
 
 Much lighter version of https://github.com/trougnouf/mthesis-denoise
 
-TODO: tensorflow implementation (has C API which would work with darktable),
+TODO: C implementation that can be included in darktable, find lighter functional network architecture.
 
 ## test
 
@@ -106,9 +106,12 @@ This network is recommended.
 python3 nn_train.py --config configs/train_conf_utnet_std.yaml --batch_size 30 --train_data ../../datasets/train/NIND_256_192
 ```
 
+The beginning of UtNet training is sometimes unstable. If the loss reaches <0.1 then increases back to >0.4 during the first epoch, then try again.
+
 ### Train with a discriminator (cGAN, highly experimental)
 ```bash
 python3 nn_train.py --d_network Hulf112Disc --batch_size 10
 ```
 
 note that run\_nn.py contains slightly more options (such as compression and artificial noise) but it only trains one network at a time. nn\_train.py can currently train one generator and two discriminators.
+
