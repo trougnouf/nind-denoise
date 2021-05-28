@@ -1,0 +1,29 @@
+batch_size: 20
+beta1: 0.5
+compute_SSIM_anyway: false
+cs: 220
+loss_cs: 161  # Center crop for the loss function. Should be bigger when g_network is not UNet.
+min_crop_size: null  # This triggers a dataset check.
+cuda_device: 0
+epochs: 321
+min_lr: 5.0e-08
+freeze_generator: false
+g_activation: PReLU
+g_funit: 32
+g_model_path: null
+patience: 3
+reduce_lr_factor: 0.95
+start_epoch: 1
+threads: 8  # For the data loader. Adjust as available.
+time_limit: null
+train_data:
+- ../../datasets/cropped/NIND_256_192
+validation_interval: 1
+validation_set_yaml: configs/validation_set_300_NIND_256_192_test_set_nind.yaml
+weight_D1: 0
+weight_D2: 0
+weight_L1: 0
+weight_MSSSIM: 1
+weight_SSIM: 0
+exp_mult_min: 0.85
+exp_mult_max: 1.15

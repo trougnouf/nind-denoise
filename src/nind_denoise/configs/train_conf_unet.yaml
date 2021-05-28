@@ -1,0 +1,15 @@
+batch_size: 20
+beta1: 0.5
+cs: 220
+loss_cs: 161  # Center crop for the loss function. Should be bigger when g_network is not UNet.
+min_crop_size: null  # This triggers a dataset check.
+g_network: UNet
+start_epoch: 1
+threads: 8  # For the data loader. Adjust as available.
+time_limit: null
+train_data:
+- ../../datasets/cropped/NIND_256_192
+models_dpath: ../../models/nind_denoise
+validation_interval: 1
+orig_data: ../../datasets/NIND
+g_lr: 0.0003
