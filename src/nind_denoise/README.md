@@ -106,7 +106,7 @@ This network is recommended.
 python3 nn_train.py --config configs/train_conf_utnet_std.yaml --batch_size 30 --train_data ../../datasets/train/NIND_256_192
 ```
 
-The beginning of UtNet training is sometimes unstable. If the loss reaches <0.1 then increases back to >0.4 during the first epoch, then try again.
+The beginning of UtNet training is sometimes unstable. If the loss reaches <0.1 then increases back to >0.4 during the first epoch, then the network is stuck producing gargbage; try again. This could probably be solved by starting without the high ISO images, ie by using the PickyDenoisingDatasetFromList for the first epoch, but in the meantime it should initialize correctly within 5 attempts.
 
 ### Train with a discriminator (cGAN, highly experimental)
 ```bash

@@ -391,8 +391,7 @@ if __name__ == '__main__':
             
             if len(generator_loss_hist) > 0 and max(generator_loss_hist) < lr_loss:
                 generator_learning_rate = generator.update_learning_rate(args.reduce_lr_factor)
-                p.print(f'Generator learning rate updated to {generator_learning_rate} because',
-                        f'generator_loss_hist={generator_loss_hist} < lr_loss={lr_loss}')
+                p.print(f'Generator learning rate updated to {generator_learning_rate} because generator_loss_hist={generator_loss_hist} < lr_loss={lr_loss}')
             generator_loss_hist.append(lr_loss)
             
             jsonsaver.add_res(
