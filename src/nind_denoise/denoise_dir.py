@@ -24,6 +24,7 @@ from nind_denoise import nn_common
 from nind_denoise import dataset_torch_3
 from common.libs import pt_helpers
 from common.libs import json_saver
+from nind_denoise import import denoise_image
 
 
 # eg python denoise_dir.py --model_subdir ...
@@ -39,8 +40,8 @@ def parse_args():
     parser.add_argument('--result_dir', default='../../results/NIND/test', type=str, help='directory where results are saved. Can also be set to "make_subdirs" to make a denoised/<model_directory_name> subdirectory')
     parser.add_argument('--cuda_device', '--device', default=0, type=int, help='Device number (default: 0, typically 0-3)')
     parser.add_argument('--no_scoring', action='store_true', help='Generate SSIM score and MSE loss unless this is set')
-    parser.add_argument('--cs', type=str, default='660') # TODO compute acceptable values
-    parser.add_argument('--ucs', type=str, default='470')
+    parser.add_argument('--cs', type=str) # TODO compute acceptable values
+    parser.add_argument('--ucs', type=str)
     parser.add_argument('--skip_existing', action='store_true', help='Skip existing files')
     parser.add_argument('--whole_image', action='store_true', help='Ignore cs and ucs, denoise whole image')
     parser.add_argument('--pad', type=int, help='Padding amt per side, only used for whole image (otherwise (cs-ucs)/2')
@@ -56,6 +57,7 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     assert args.model_path is not None
+    denoise_image.autodetect_network_cs_ucs(args)
     model_path = Model.complete_path(args.model_path, keyword='generator', models_dpath=args.models_dpath)
     if args.noisy_dir is not None:
         sets_to_denoise = os.listdir(args.noisy_dir)

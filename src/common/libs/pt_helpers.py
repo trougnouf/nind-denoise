@@ -19,9 +19,9 @@ def fpath_to_tensor(img_fpath, device=torch.device(type='cpu'), batch=False):
 def tensor_to_imgfile(tensor, path):
     if tensor.dtype == torch.float32:
         if path[-4:].lower() in ['.jpg', 'jpeg']:  # 8-bit
-            return torchvision.utils.save_image(tensor, path)
+            return torchvision.utils.save_image(tensor.clip(0,1), path)
         elif path[-4:].lower() in ['.png', '.tif', 'tiff']:  # 16-bit
-            nptensor = (tensor*65535).round().cpu().numpy().astype(np.uint16).transpose(1,2,0)
+            nptensor = (tensor.clip(0,1)*65535).round().cpu().numpy().astype(np.uint16).transpose(1,2,0)
             nptensor = cv2.cvtColor(nptensor, cv2.COLOR_RGB2BGR)
             cv2.imwrite(path, nptensor)
         else:

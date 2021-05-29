@@ -134,6 +134,9 @@ class Model:
                 exit(1)
         else:
             model = globals()[network](**parameters)
+            if network == 'UtNet':
+                # torch.nn.init.kaiming_normal_(model.weight) # try this on next training?
+                pass  # TODO initialize differently to stabilize (try torch.nn.init.kaiming_normal_?)
         return model.to(device)
 
 
