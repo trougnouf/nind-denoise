@@ -218,8 +218,6 @@ if __name__ == '__main__':
                                                 cs=args.cs, min_crop_size=args.min_crop_size,
                                                 exp_mult_min=args.exp_mult_min,
                                                 exp_mult_max=args.exp_mult_max)
-    if args.do_quality_check:
-        exit('Quality check done')
     if args.loss_cs is None:
         args.loss_cs = DDataset.min_crop_size
         assert args.loss_cs is not None

@@ -114,4 +114,3 @@ python3 nn_train.py --d_network Hulf112Disc --batch_size 10
 ```
 
 note that run\_nn.py contains slightly more options (such as compression and artificial noise) but it only trains one network at a time. nn\_train.py can currently train one generator and two discriminators.
-

@@ -5,6 +5,7 @@ cd ${DESTDIR}
 #git clone git@github.com:trougnouf/nind-denoise.git
 DESTDIR=${DESTDIR}/nind-denoise
 cd ${DESTDIR}
+git pull
 rm * -r
 CURDIR="models/nind_denoise/2019-02-18T20:10_run_nn.py_--time_limit_259200_--batch_size_94_--test_reserve_ursulines-red_stefantiek_ursulines-building_MuseeL-Bobo_CourtineDeVillersDebris_MuseeL-Bobo-C500D_--skip_sizecheck_--lr_3e-4"
 mkdir -p ${CURDIR}
