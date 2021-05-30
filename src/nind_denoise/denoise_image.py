@@ -26,7 +26,6 @@ from torch.utils.data import Dataset
 import time
 import configargparse
 from nn_common import Model
-from _ftdi1 import NONE
 try:
     import piexif   # TODO make it optional
 except ImportError:

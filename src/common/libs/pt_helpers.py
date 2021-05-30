@@ -2,6 +2,7 @@ import torch
 import cv2
 from PIL import Image
 import torchvision
+import numpy as np
 import sys
 sys.path.append('..')
 from common.libs import np_imgops

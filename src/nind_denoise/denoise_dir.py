@@ -17,7 +17,6 @@ from PIL import Image
 import loss
 import subprocess
 from nn_common import Model
-from sympy.printing.pretty.tests.test_pretty import ph
 sys.path.append('..')
 from common.libs import utilities
 from nind_denoise import nn_common
