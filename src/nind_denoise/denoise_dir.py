@@ -27,13 +27,13 @@ from nind_denoise import denoise_image
 
 
 # eg python denoise_dir.py --model_subdir ...
-# python denoise_dir.py --cs 660 --ucs 470 --model_path ../../models/nind_denoise/2019-02-18T20\:10_run_nn.py_--time_limit_259200_--batch_size_94_--test_reserve_ursulines-red_stefantiek_ursulines-building_MuseeL-Bobo_CourtineDeVillersDebris_MuseeL-Bobo-C500D_--skip_sizecheck_--lr_3e-4/model_257.pth
+# python denoise_dir.py --g_network UNet --model_path ../../models/nind_denoise/2019-02-18T20\:10_run_nn.py_--time_limit_259200_--batch_size_94_--test_reserve_ursulines-red_stefantiek_ursulines-building_MuseeL-Bobo_CourtineDeVillersDebris_MuseeL-Bobo-C500D_--skip_sizecheck_--lr_3e-4/model_257.pth
 def parse_args():
     parser = configargparse.ArgumentParser(description=__doc__, default_config_files=[
         nn_common.COMMON_CONFIG_FPATH],
         config_file_parser_class=configargparse.YAMLConfigFileParser)
     parser.add_argument('--noisy_dir', type=str, help='directory of test dataset (or any directory containing images to be denoised), must end with [CROPSIZE]_[USEFULCROPSIZE]')
-    parser.add_argument('--g_network', '--network', type=str, help='Generator network (default: %s)')
+    parser.add_argument('--g_network', '--network', type=str, help='Generator network architecture')
     parser.add_argument('--model_path', help='Generator pretrained model path (.pth for model, .pt for dictionary)')
     parser.add_argument('--model_parameters', default="", type=str, help='Model parameters with format "parameter1=value1,parameter2=value2"')
     parser.add_argument('--result_dir', default='../../results/NIND/test', type=str, help='directory where results are saved. Can also be set to "make_subdirs" to make a denoised/<model_directory_name> subdirectory')
@@ -101,6 +101,7 @@ if __name__ == '__main__':
                 if args.max_subpixels is not None:
                     cmd.extend(['--max_subpixels', str(args.max_subpixels)])
                     print(cmd)
+                print(' '.join(cmd))
                 subprocess.call(cmd)
             cur_losses = pt_helpers.get_losses(baseline_fpath, outimg_path)
             print(f'in: {inimg_path}, out: {outimg_path}, clean: {baseline_fpath}')
