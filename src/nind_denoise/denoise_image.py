@@ -59,7 +59,7 @@ def autodetect_network_cs_ucs(args) -> None:
         elif 'utnet' in args.model_path.lower():
             args.g_network = 'UtNet'
         else:
-            exit('Could not determine network architecture from path. Please specify a "network" type.')
+            exit('Could not determine network architecture from path. Please specify a "--network" type (typically UNet or UtNet)')
         print(f'Assuming {args.g_network} from path')
     if args.cs is None or args.ucs is None:
         print('cs and/or ucs not set, using defaults ...')
@@ -224,7 +224,9 @@ if __name__ == '__main__':
     model = model.to(device)
     ds = OneImageDS(args.input, args.cs, args.ucs, args.overlap, whole_image=args.whole_image, pad=args.pad)
     # multiple workers cannot access the same PIL object without crash
-    DLoader = DataLoader(dataset=ds, num_workers=0, drop_last=False, batch_size=args.batch_size, shuffle=False)
+    DLoader = DataLoader(dataset=ds,
+                         num_workers=0 if args.batch_size == 1 else max(min(args.batch_size, os.cpu_count()//4), 1),
+                         drop_last=False, batch_size=args.batch_size, shuffle=False)
     topil = torchvision.transforms.ToPILImage()
     fswidth, fsheight = Image.open(args.input).size
     newimg = torch.zeros(3, fsheight, fswidth, dtype=torch.float32)
@@ -262,7 +264,7 @@ if __name__ == '__main__':
     if args.output[:-4] == '.jpg' and args.exif_method == 'piexif':
         piexif.transplant(args.input, args.output)
     elif args.exif_method != 'noexif':
-        cmd = ['exiftool', '-TagsFromFile', args.input, args.output, '-overwrite_original']
+        cmd = ['exiftool', '-TagsFromFile', args.input, args.output, '-all', '-icc_profile', '-overwrite_original']
         subprocess.run(cmd)
     print(f'Wrote denoised image to {args.output}')
     print('Elapsed time: '+str(time.time()-start_time)+' seconds')
