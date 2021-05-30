@@ -48,7 +48,7 @@ The following script tests a model on data it has not seen during training (--te
 and reports a final ms-ssim, ssim, and mse losses.
 
 ```
-python denoise_dir.py --cs 552 --ucs 540 --network UtNet --model_path <PT_MODEL_PATH>
+python denoise_dir.py --network UtNet --model_path <PT_MODEL_PATH>
 ```
 (add originally downloaded dataset information with --orig_data, eg ../../datasets/NIND if it is not
 in its default location)
