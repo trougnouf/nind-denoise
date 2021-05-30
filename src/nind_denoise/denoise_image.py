@@ -223,7 +223,6 @@ if __name__ == '__main__':
     model.eval()  # evaluation mode
     model = model.to(device)
     ds = OneImageDS(args.input, args.cs, args.ucs, args.overlap, whole_image=args.whole_image, pad=args.pad)
-    # multiple workers cannot access the same PIL object without crash
     DLoader = DataLoader(dataset=ds,
                          num_workers=0 if args.batch_size == 1 else max(min(args.batch_size, os.cpu_count()//4), 1),
                          drop_last=False, batch_size=args.batch_size, shuffle=False)
@@ -240,10 +239,11 @@ if __name__ == '__main__':
         ybatch = ybatch.to(device)
         xbatch = model(ybatch)
         torch.cuda.synchronize()
-        for i in range(args.batch_size):
+        for i in range(ybatch.size(0)):
             ud = usefuldims[i]
             # pytorch represents images as [channels, height, width]
             # TODO test leaving on GPU longer
+            # TODO reconstruct image with batch_size > 1
             tensimg = xbatch[i][:,ud[1]:ud[3], ud[0]:ud[2]].cpu().detach()
             if args.whole_image:
                 newimg = tensimg
