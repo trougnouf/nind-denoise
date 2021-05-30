@@ -14,13 +14,10 @@ will function with the current state of the source code.
 
 '''
 # This replaces run_nn.py
+
+# TODO reset at the end of epoch if stuck producing garbage
 # TODO functions
-
-# TODO json saver, keep best models, add data
-
 # TODO full test every full_test_interval (done but too memory hungry at 32GB, could use cropping)
-
-# TODO check on lr scheduler
 
 import configargparse
 import os
@@ -393,6 +390,8 @@ if __name__ == '__main__':
                 generator_learning_rate = generator.update_learning_rate(args.reduce_lr_factor)
                 p.print(f'Generator learning rate updated to {generator_learning_rate} because generator_loss_hist={generator_loss_hist} < lr_loss={lr_loss}')
             generator_loss_hist.append(lr_loss)
+            
+            # TODO reset to previous best (or init if epoch 1) if failed (eg lr_loss <= .4)
             
             jsonsaver.add_res(
                 epoch, {'gen_lr': generator_learning_rate},

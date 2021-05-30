@@ -24,7 +24,7 @@ from nind_denoise import nn_common
 from nind_denoise import dataset_torch_3
 from common.libs import pt_helpers
 from common.libs import json_saver
-from nind_denoise import import denoise_image
+from nind_denoise import denoise_image
 
 
 # eg python denoise_dir.py --model_subdir ...
@@ -40,7 +40,7 @@ def parse_args():
     parser.add_argument('--result_dir', default='../../results/NIND/test', type=str, help='directory where results are saved. Can also be set to "make_subdirs" to make a denoised/<model_directory_name> subdirectory')
     parser.add_argument('--cuda_device', '--device', default=0, type=int, help='Device number (default: 0, typically 0-3)')
     parser.add_argument('--no_scoring', action='store_true', help='Generate SSIM score and MSE loss unless this is set')
-    parser.add_argument('--cs', type=str) # TODO compute acceptable values
+    parser.add_argument('--cs', type=str)
     parser.add_argument('--ucs', type=str)
     parser.add_argument('--skip_existing', action='store_true', help='Skip existing files')
     parser.add_argument('--whole_image', action='store_true', help='Ignore cs and ucs, denoise whole image')
@@ -92,7 +92,9 @@ if __name__ == '__main__':
                 continue
             outimg_path = os.path.join(denoised_save_dir, animg)
             if not (os.path.isfile(outimg_path) and args.skip_existing):
-                cmd = ['python', 'denoise_image.py', '-i', inimg_path, '-o', outimg_path, '--model_path', model_path, '--network',args.g_network, '--model_parameters', args.model_parameters, '--ucs', args.ucs, '--cs', args.cs]
+                cmd = ['python', 'denoise_image.py', '-i', inimg_path, '-o', outimg_path,
+                       '--model_path', model_path, '--network',args.g_network, '--model_parameters',
+                       args.model_parameters, '--ucs', str(args.ucs), '--cs', str(args.cs)]
                 if args.whole_image:
                     cmd.extend(['--whole_image', '--pad', '128'])
                 if args.cuda_device is not None:
