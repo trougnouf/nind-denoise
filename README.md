@@ -8,9 +8,21 @@ TODO: C implementation that can be included in darktable, find lighter functiona
 
 ## test
 
-### denoise an image
+### dependencies
 
-Requirements: pytorch, pytorch-opencv, python-configargparse [, exiftool]
+pytorch, pytorch-opencv, python-configargparse, pyyaml, piqa
+
+eginstall on any operating system: `pip3 install --user torch torchvision ConfigArgParse opencv-python pyyaml piqa`
+
+eginstall on Arch Linux:
+
+ ```
+sudo pacman -S python-pytorch-opt-cuda python-opencv
+pacaur -Se python-torchvision-cuda  # I highly recommend removing the check() function because the tests take forever
+pacaur -S python-pytorch-piqa python-configargparse-git  # configargparse is outdated in the arch repo and results in 'None' (string) values.
+ ```
+
+### denoise an image
 
 ```
 python3 denoise_image.py --network <network_architecture> --model_path <model_filepath> --input <input_image_path> [-o output_image_path]
