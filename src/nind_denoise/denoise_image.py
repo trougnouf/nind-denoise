@@ -261,6 +261,7 @@ if __name__ == '__main__':
     if args.debug:
         torchvision.utils.save_image(xbatch[i].cpu().detach(), args.output+'dbg_inclborders.tif')  # dbg: get img with borders
     pt_helpers.tensor_to_imgfile(newimg, args.output)
+    print(f'Denoised image written to {args.output}')
     if args.output[:-4] == '.jpg' and args.exif_method == 'piexif':
         piexif.transplant(args.input, args.output)
     elif args.exif_method != 'noexif':
