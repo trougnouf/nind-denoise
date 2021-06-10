@@ -8,11 +8,14 @@ import argparse
 import subprocess
 import math
 from multiprocessing import cpu_count
+import sys
+sys.path.append('..')
+from common.libs import utilities
 
 CS = 256
 STRIDE = 192
 FS_DS_DPATH = os.path.join('..', '..', 'datasets', 'NIND')
-CROPPED_DS_DPATH = os.path.join('..', '..', 'datasets', 'cropped')
+CROPPED_DS_DPATH = os.path.join('..', '..', 'datasets', 'cropped')  # no longer used
 
 parser = argparse.ArgumentParser(description='Image cropper with overlap (relies on crop_img.sh)')
 parser.add_argument('--cs', default=CS, type=int, help=f'Crop size (default: {CS})')
@@ -22,8 +25,8 @@ parser.add_argument('--resdir', default=CROPPED_DS_DPATH, type=str, help=f'Outpu
 parser.add_argument('--max_threads', default=math.ceil(cpu_count()/2),  type=int, help=f'Maximum number of active threads, default={math.ceil(cpu_count()/2)}')
 args = parser.parse_args()
 
-dsdir = args.dsdir.split('/')[-1]
-resdir = os.path.join(args.resdir, dsdir+'_'+str(args.cs)+'_'+str(args.stride))
+dsdir = utilities.get_leaf(args.dsdir)
+resdir = os.path.join(utilities.get_root(args.dsdir), 'cropped', dsdir+'_'+str(args.cs)+'_'+str(args.stride))
 todolist = []
 
 def findisoval(fn):

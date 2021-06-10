@@ -217,6 +217,10 @@ if __name__ == '__main__':
     if args.output is None:
         args.output = make_output_fpath(args.input, args.model_path)
 
+    # ugly hardcoded hack for now
+    if args.model_parameters is None and 'activation' in args.model_path:
+        args.model_parameters = f"activation={args.model_path.split('activation')[-1].split('_')[1].split('_')[0]}"
+        print(f'set model_parameters to {args.model_parameters} based on model_path')
     model = Model.instantiate_model(network=args.g_network, model_path=args.model_path,
                                     strparameters=args.model_parameters, keyword='generator',
                                     device=device, models_dpath=args.models_dpath)

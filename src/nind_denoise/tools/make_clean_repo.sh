@@ -28,3 +28,4 @@ cp ${ORIGDIR}/src/nind_denoise/tools/* ${ORIGDIR}/src/nind_denoise/libs/graph_ut
 cp -r "${ORIGDIR}/src/nind_denoise/unittest_resources" ${ORIGDIR}/src/nind_denoise/*.py ${ORIGDIR}/src/nind_denoise/README.md src/nind_denoise/
 cp -r ${ORIGDIR}/src/nind_denoise/datasets src/nind_denoise/
 cp src/nind_denoise/README.md .
+echo "Clean repo ready in $DESTDIR"

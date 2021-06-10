@@ -1,0 +1,2 @@
+clean_data_dpath: ../../datasets/filtered/ISO200/resized/1024/FeaturedPictures
+clean_data_ratio: 0.05

@@ -1,10 +1,15 @@
-# mthesis-denoise
+# nind-denoise
 
 Master thesis on natural image noise removal using Convolutional Neural Networks. Works with the Natural Image Noise Dataset to apply to real photographs, using a UNet network architecture by default.
 
 Much lighter version of https://github.com/trougnouf/mthesis-denoise
 
-TODO: C implementation that can be included in darktable, find lighter functional network architecture.
+TODO: C implementation that can be included in darktable, find lighter functional network architecture, reprocess raw data to train model at the beginning of pixel pipeline
+
+See also:
+* Dataset: <https://commons.wikimedia.org/wiki/Natural_Image_Noise_Dataset>
+* Paper: <https://openaccess.thecvf.com/content_CVPRW_2019/html/NTIRE/Brummer_Natural_Image_Noise_Dataset_CVPRW_2019_paper.html>
+* Models: <https://drive.google.com/drive/folders/1XmY9yO3yhhhdwQ_btYCIpkUBFQ88H-pr?usp=sharing>
 
 ## test
 
@@ -87,7 +92,7 @@ python3 tools/crop_ds.py --cs 256 --stride 192  # this takes a long time.
 python tools/pick_validation_set.py --num_crops 300
 ```
 
-Optionally, run "python tools/make_dataset_crops_list.py" (with the same dataset-related options as above) to generate a list of crops with ms-ssim loss in datasets/<dsname>-msssim.csv. (Provided for NIND_256_192) This can be useful if you would like to modify the dataset to handle a simpler list and only take images above a given quality threshold.
+Optionally, run `python tools/make_dataset_crops_list.py` (with the same dataset-related options as above) to generate a list of crops with ms-ssim loss in datasets/<dsname>-msssim.csv. (Provided for NIND_256_192) This can be useful if you would like to modify the dataset to handle a simpler list and only take images above a given quality threshold.
 
 Cropping can be accelerated greatly by temporarily placing the downloaded dataset (approximately 30.1 GB) on a SSD.
 
@@ -100,6 +105,17 @@ A valid dataset size is determined as follow:
 -> crop size of 256 px with 64 px offset; random crop of 220, central loss of 
 
 In the end you should have ROOT/datasets/cropped/NIND_256_192/*/* which takes up approximately 46.4 GB. Consider putting that directory on a SSD for faster training.
+
+#### Optional: clean-clean dataset
+Requirements: mwclient
+
+bash make_clean-clean_dataset.sh
+
+Unfortunately some of the tools/libraries behind this are not public / oss :( PR for free replacements are welcome.
+
+In the meantime one can either crop /scale a dataset yourself, or even use full-size images.
+
+to use clean data in training, add --clean_data_dpath and --clean_data_ratio (eg: 0.1) argument to nn_train.py
 
 
 ### Train U-Net denoiser

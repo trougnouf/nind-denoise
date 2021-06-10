@@ -13,6 +13,14 @@ will function with the current state of the source code.
 
 
 '''
+
+
+'''
+TODO:
+models: # TODO https://github.com/DingXiaoH/RepVGG
+
+train w/ clean-clean images too. eg FP limited to ISO200
+'''
 # This replaces run_nn.py
 
 # TODO reset at the end of epoch if stuck producing garbage
@@ -118,6 +126,7 @@ if __name__ == '__main__':
         nn_common.COMMON_CONFIG_FPATH, DEFAULT_CONFIG_FPATH],
         config_file_parser_class=configargparse.YAMLConfigFileParser)
     parser.add('-c', '--config', is_config_file=True, help='(yaml) config file path')
+    parser.add('-c2', '--config2', is_config_file=True, help='extra (yaml) config file path')
     parser.add_argument('--batch_size', type=int, help='Training batch size')
     parser.add_argument('--time_limit', type=int, help='Time limit in seconds (ends training)')
     parser.add_argument('--g_activation', type=str, default='PReLU', help='Final activation function for generator')
@@ -152,6 +161,9 @@ if __name__ == '__main__':
     parser.add_argument('--validation_set_yaml', help=f'Yaml file containing a list of clean/noisy images used for validation.')
     parser.add_argument('--exp_mult_min', type=float, help='Minimum exposure multiplicator (data augmentation)')
     parser.add_argument('--exp_mult_max', type=float, help='Maximum exposure multiplicator (data augmentation)')
+    # add clean / hq images to the training
+    parser.add_argument('--clean_data_dpath', help='Location of the high quality (pre-cropped) clean data which can be used in training')
+    parser.add_argument('--clean_data_ratio', type=float, help='Ratio of clean-clean to clean-noisy training data')
     # discriminator stuff
     parser.add_argument('--d_activation', type=str, default='PReLU', help='Final activation function for discriminator')
     parser.add_argument('--d2_activation', type=str, default='PReLU', help='Final activation function for discriminator')
@@ -180,10 +192,10 @@ if __name__ == '__main__':
         torch.cuda.set_device(args.cuda_device)
         device = torch.device("cuda:"+str(args.cuda_device))
         cudnn.benchmark = True
-        torch.cuda.manual_seed(123)
+        #torch.cuda.manual_seed(123)
     else:
         device = torch.device('cpu')
-    torch.manual_seed(123)
+    #torch.manual_seed(123)
     
     debug_options = [nn_common.DebugOptions(opt) for opt in args.debug_options]
 
@@ -222,9 +234,21 @@ if __name__ == '__main__':
         args.cs = DDataset.cs
     if nn_common.DebugOptions.SHORT_RUN in debug_options:
         DDataset.dataset = DDataset.dataset[:3*args.batch_size]
-    data_loader = DataLoader(dataset=DDataset, num_workers=args.threads, drop_last=True,
-                             batch_size=args.batch_size, shuffle=True)
     
+    if args.clean_data_ratio is not None and args.clean_data_ratio > 0:
+        CCdataset = dataset_torch_3.CleanCleanDataset(args.clean_data_dpath, cs=args.cs)
+        bs_clean = max(1, int(args.batch_size * args.clean_data_ratio))
+        bs_std = args.batch_size - bs_clean
+        p.print(f'Initialized clean dataset of size {len(CCdataset)}. Clean batch_size = {bs_clean}')
+        clean_dataloader = DataLoader(dataset=CCdataset, num_workers=min(max(1, args.threads//2), bs_clean), batch_size=bs_clean, shuffle=True)
+        clean_dataloader_iterator = iter(clean_dataloader)
+    else:
+        bs_clean = 0
+        bs_std = args.batch_size
+        
+    data_loader = DataLoader(dataset=DDataset, num_workers=args.threads, drop_last=True,
+                             batch_size=bs_std, shuffle=True)
+
     # init models
     
     if use_D:
@@ -281,7 +305,8 @@ if __name__ == '__main__':
 
     start_time = time.time()
     generator_loss_hist = collections.deque(maxlen=args.patience)
-    
+        
+        
     # Train        
     for epoch in range(args.start_epoch, args.epochs):
         loss_D_list = []
@@ -289,7 +314,17 @@ if __name__ == '__main__':
         loss_G_list = []
         loss_G_SSIM_list = []
         epoch_start_time = time.time()
+
         for iteration, batch in enumerate(data_loader, 1):
+            if bs_clean > 0:
+                try:
+                    clean_batch = next(clean_dataloader_iterator)
+                except StopIteration:
+                    clean_dataloader_iterator = iter(clean_dataloader)
+                    clean_batch = next(clean_dataloader_iterator)
+                    p.print('Reloading clean_dataloader')
+                batch[0] = torch.cat((batch[0], clean_batch[0]))
+                batch[1] = torch.cat((batch[1], clean_batch[1]))
             iteration_summary = 'Epoch %u batch %u/%u: ' % (epoch, iteration, len(data_loader))
             clean_batch_cropped = pt_ops.pt_crop_batch(batch[0].to(device), args.loss_cs)
             noisy_batch = batch[1].to(device)

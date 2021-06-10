@@ -36,6 +36,7 @@ from common.libs import utilities
 
 FS_DS_DPATH = os.path.join('..', '..', 'datasets', 'NIND')
 CROPPED_DS_DPATH = os.path.join('..', '..', 'datasets', 'cropped')
+CROP_SIZELIMIT: int = 10000000   # 10 MB
 
 def sortISOs(rawISOs: List[str]) -> tuple:
     '''
@@ -131,6 +132,7 @@ class DenoisingDataset(torch.utils.data.Dataset):
                  compressionmax: int = 100, sigmamin: int = 0, sigmamax: int = 0,
                  test_reserve: list = [], min_crop_size: Optional[int] = None,
                  exact_reserve: bool = False, cs=None, exp_mult_min=1, exp_mult_max=1):
+                 #sharpenmin: int = 0, sharpenmax: int = 0):
         def keep_only_isoval_from_list(isos,keepval):
             keptisos = []
             for iso in isos:
@@ -163,6 +165,7 @@ class DenoisingDataset(torch.utils.data.Dataset):
         self.compressionmin, self.compressionmax = compressionmin, compressionmax
         self.sigmamin, self.sigmamax = sigmamin, sigmamax
         self.exp_mult_min, self.exp_mult_max = exp_mult_min, exp_mult_max
+        #self.sharpenmin, self.sharpenmax = sharpenmin, sharpenmax
         # scan given dataset directory
         for datadir in datadirs:
             for aset in os.listdir(datadir):
@@ -245,6 +248,7 @@ class DenoisingDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, reqindex):
         xpath, ypath = self.get_x_y_paths(reqindex)
+        
         ximg, yimg = self.crop_and_pad_from_paths(xpath, ypath)
         # data augmentation
         nrot = random.randint(0, 3)
@@ -268,10 +272,11 @@ class DenoisingDataset(torch.utils.data.Dataset):
         if getattr(self, 'sigmamax', 0) > 0:
             noise = torch.randn(yimg.shape).mul_(random.uniform(self.sigmamin, self.sigmamax)/255)
             yimg = torch.abs(yimg+noise)
-        if self.exp_mult_min < 1 or self.exp_mult_max > 1:
+        if getattr(self, 'exp_mult_min', 1) < 1 or getattr(self, 'exp_mult_min', 1) > 1:
             exp_mult = random.uniform(self.exp_mult_min, min(self.exp_mult_max, 1/ximg.max()))
             ximg = (ximg * exp_mult)
             yimg = (yimg * exp_mult).clip(0, 1)
+        # TODO data augmentation could include scaling, especially for clean-clean dataset
         return ximg, yimg
     
     def __len__(self):
@@ -295,6 +300,19 @@ class PickyDenoisingDatasetFromList(DenoisingDataset):
         self.exp_mult_max = exp_mult_max
     def get_x_y_paths(self, i):
         return self.dataset['xpath'], self.dataset['ypath']
+    
+class CleanCleanDataset(DenoisingDataset):
+    def __init__(self, data_dpath: str, cs: int, crop_sizelimit = CROP_SIZELIMIT):
+        self.cs = cs
+        self.data_dpath = data_dpath
+        self.dataset = []
+        for fn in os.listdir(data_dpath):
+            if utilities.filesize(os.path.join(data_dpath, fn)) <= CROP_SIZELIMIT:
+                self.dataset.append(fn)
+    def get_x_y_paths(self, index):
+        fpath = os.path.join(self.data_dpath, self.dataset[index])
+        return fpath, fpath
+    
 
 class LazyNoiseDataset(DenoisingDataset):
     '''

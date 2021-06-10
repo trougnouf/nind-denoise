@@ -1,6 +1,31 @@
 import os
 import json
 import statistics
+import shutil
+import subprocess
+import hashlib
+
+def checksum(fpath, htype='sha1'):
+    if htype == 'sha1':
+        h = hashlib.sha1()
+    elif htype == 'sha256':
+        h = hashlib.sha256()
+    else:
+        raise NotImplementedError(type)
+    with open(fpath, 'rb') as file:
+        while True:
+            # Reading is buffered, so we can read smaller chunks.
+            chunk = file.read(h.block_size)
+            if not chunk:
+                break
+            h.update(chunk)
+    return h.hexdigest()
+
+def cp(inpath, outpath):
+    try:
+        subprocess.run(('cp', '--reflink=auto', inpath, outpath))
+    except FileNotFoundError:
+        shutil.copy2(inpath, outpath)
 
 def jsonfpath_load(fpath, default_type=dict, default=None):
     if not os.path.isfile(fpath):
@@ -49,3 +74,6 @@ def list_of_tuples_to_csv(listoftuples, heading, fpath):
         csvwriter.writerow(heading)
         for arow in listoftuples:
             csvwriter.writerow(arow)
+
+def filesize(fpath):
+    return os.stat(fpath).st_size

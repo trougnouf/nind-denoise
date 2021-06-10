@@ -1,5 +1,6 @@
 '''
 List a datasets' crops under a csv file and list all ms-ssim values
+Useful to train above a given quality threshold
 '''
 import configargparse
 import os

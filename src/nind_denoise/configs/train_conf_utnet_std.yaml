@@ -13,4 +13,4 @@ models_dpath: ../../models/nind_denoise
 validation_interval: 1
 orig_data: ../../datasets/NIND
 g_funit: 64
-g_lr: 0.0003
+g_lr: 0.0001

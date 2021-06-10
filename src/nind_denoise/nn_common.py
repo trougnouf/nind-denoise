@@ -11,8 +11,10 @@ import sys
 sys.path.append('..')
 #from nind_denoise.lib import pytorch_ssim
 from nind_denoise.networks.Hul import Hulb128Net, Hul112Disc, Hulf112Disc
-from nind_denoise.networks.ThirdPartyNets import PatchGAN, UNet
+from nind_denoise.networks.ThirdPartyNets import PatchGAN, UNet, MobileNetV3, deeplabv3_resnet101
 from nind_denoise.networks.UtNet import UtNet
+#from nind_denoise.networks.MIRNet import MIRNet (huge VRAM, bs=2, nope?)
+
 try:
     from common.libs import pt_losses
 except ModuleNotFoundError as e:
@@ -134,9 +136,6 @@ class Model:
                 exit(1)
         else:
             model = globals()[network](**parameters)
-            if network == 'UtNet':
-                # torch.nn.init.kaiming_normal_(model.weight) # try this on next training?
-                pass  # TODO initialize differently to stabilize (try torch.nn.init.kaiming_normal_?)
         return model.to(device)
 
 
@@ -182,7 +181,7 @@ class Generator(Model):
             self.criterions['D1'] = torch.nn.MSELoss().to(device)
         if weights['D2'] > 0:
             self.criterions['D2'] = torch.nn.MSELoss().to(device)
-        self.model = self.instantiate_model(model_path=model_path, network=network, pfun=self.print, device=device, funit=funit, keyword='generator', models_dpath=models_dpath)
+        self.model = self.instantiate_model(model_path=model_path, network=network, pfun=self.print, device=device, funit=funit, keyword='generator', models_dpath=models_dpath, activation=activation)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr, betas=(beta1, 0.999), amsgrad=True)
         #self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, factor=reduce_lr_factor, verbose=True, threshold=1e-8, patience=patience)
         self.device = device

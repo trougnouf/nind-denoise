@@ -34,7 +34,7 @@ def parse_args():
         config_file_parser_class=configargparse.YAMLConfigFileParser)
     parser.add_argument('--noisy_dir', type=str, help='directory of test dataset (or any directory containing images to be denoised), must end with [CROPSIZE]_[USEFULCROPSIZE]')
     parser.add_argument('--g_network', '--network', type=str, help='Generator network architecture (typically UtNet or UNet)')
-    parser.add_argument('--model_path', help='Generator pretrained model path (.pth for model, .pt for dictionary)')
+    parser.add_argument('--model_path', '--model_fpath', help='Generator pretrained model path (.pth for model, .pt for dictionary)')
     parser.add_argument('--model_parameters', default="", type=str, help='Model parameters with format "parameter1=value1,parameter2=value2"')
     parser.add_argument('--result_dir', default='../../results/NIND/test', type=str, help='directory where results are saved. Can also be set to "make_subdirs" to make a denoised/<model_directory_name> subdirectory')
     parser.add_argument('--cuda_device', '--device', default=0, type=int, help='Device number (default: 0, typically 0-3)')
@@ -90,6 +90,8 @@ if __name__ == '__main__':
             if baseline_fpath == inimg_path:
                 continue
             outimg_path = os.path.join(denoised_save_dir, animg)
+            if outimg_path.endswith('jpg'):
+                outimg_path = outimg_path+'.tif'
             if not (os.path.isfile(outimg_path) and args.skip_existing):
                 cmd = ['python', 'denoise_image.py', '-i', inimg_path, '-o', outimg_path,
                        '--model_path', model_path, '--network',args.g_network, '--model_parameters',

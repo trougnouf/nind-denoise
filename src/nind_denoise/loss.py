@@ -14,10 +14,12 @@ totensor = torchvision.transforms.ToTensor()
 def find_gt_path(denoised_fn, gt_dir):
     dsname, setdir = denoised_fn.split('_')[0:2]
     setfiles = os.listdir(os.path.join(gt_dir, setdir))
+    ext = setfiles[0].split('.')[-1]
     isos = [fn.split('_')[2][:-4] for fn in setfiles]
     baseiso = sortISOs(isos)[0][0]
-    baseiso_fn = dsname+'_'+setdir+'_'+baseiso+'.'+denoised_fn.split('.')[-1]
-    return os.path.join(gt_dir, setdir, baseiso_fn)
+    baseiso_fn = dsname+'_'+setdir+'_'+baseiso+'.'+ext
+    gt_fpath = os.path.join(gt_dir, setdir, baseiso_fn)
+    return gt_fpath
 
 def files(path):
     for fn in os.listdir(path):

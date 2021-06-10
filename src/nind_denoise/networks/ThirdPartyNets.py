@@ -2,6 +2,8 @@ import torch.nn as nn
 import numpy as np
 import torch
 import torch.nn.functional as F
+import torchvision
+
 
 # Defines the PatchGAN discriminator with the specified arguments.
 class PatchGAN(nn.Module):   # NLayerDiscriminator
@@ -166,3 +168,24 @@ class UNet(nn.Module):
             return y - self.sigmoid(x)
         return self.sigmoid(x)
 
+class MobileNetV3(torch.nn.Module):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.net = torchvision.models.segmentation.lraspp_mobilenet_v3_large(pretrained=True, progress=True)
+        
+        self.net.classifier.low_classifier = torch.nn.Conv2d(40,3,kernel_size=(1, 1), stride=(1, 1))
+        self.net.classifier.high_classifier = torch.nn.Conv2d(128,3,kernel_size=(1, 1), stride=(1, 1))
+    def forward(self, x):
+        return self.net(x)['out']
+    
+class deeplabv3_resnet101(torch.nn.Module):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.net = torchvision.models.segmentation.deeplabv3_resnet101(pretrained=True, progress=True)
+        self.net.aux_classifier[4] = torch.nn.Conv2d(256, 3, kernel_size=(1, 1), stride=(1, 1))
+    def forward(self, x):
+        raise NotImplementedError
+
+
+# TODO https://github.com/AlexeyAB/darknet/wiki/YOLOv4-model-zoo
+# TODO https://github.com/cig-skoltech/UDNet
