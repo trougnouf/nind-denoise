@@ -8,7 +8,7 @@ import yaml
 from enum import Enum
 import json
 import sys
-sys.path.append('..')
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 #from nind_denoise.lib import pytorch_ssim
 from nind_denoise.networks.Hul import Hulb128Net, Hul112Disc, Hulf112Disc
 from nind_denoise.networks.ThirdPartyNets import PatchGAN, UNet, MobileNetV3, deeplabv3_resnet101
