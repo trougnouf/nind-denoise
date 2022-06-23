@@ -337,8 +337,7 @@ local function store(storage, image, img_format, temp_name, img_num, total, hq, 
   local to_delete = {}
   table.insert(to_delete, temp_name)
 
-  local denoise_name, tmp_rl_name, new_name, run_cmd, result
-  local input_file, output_file, options
+  local denoise_name, tmp_rl_name, new_name, run_cmd, result, options
 
   -- determine output format
   local file_ext = img_format.extension   -- tiff only
@@ -389,11 +388,8 @@ local function store(storage, image, img_format, temp_name, img_num, total, hq, 
     local denoise_name = df.create_unique_filename(df.get_path(temp_name)..PS..df.get_basename(temp_name).."_denoised."..tmp_file_ext)
 
     -- build the denoise command string
-    input_file = df.sanitize_filename(temp_name)
-    output_file = df.sanitize_filename(denoise_name)
-
-    dt.print(_("denoising ")..output_file.." ...")
-    run_cmd = extra.nind_denoise.." --input "..input_file.." --output "..output_file
+    dt.print(_("denoising ")..df.get_basename(temp_name).." ...")
+    run_cmd = extra.nind_denoise.." --input "..df.sanitize_filename(temp_name).." --output "..df.sanitize_filename(denoise_name)
 
     dt.print_log(run_cmd)
 
@@ -423,10 +419,9 @@ local function store(storage, image, img_format, temp_name, img_num, total, hq, 
 
     -- work around GMIC's long/space filename problem by renaming/moving file later
     local tmp_rl_name = df.create_unique_filename(df.get_path(temp_name)..PS..df.get_basename(temp_name).."_rl."..file_ext)
+    tmp_rl_name = tmp_rl_name:gsub(" ", "_")
 
     -- build the GMic command string
-    input_file = df.sanitize_filename(temp_name)
-    output_file = df.sanitize_filename(tmp_rl_name)
     options = " cut 0,255 round "
 
     -- need this for 16-bit TIFF
@@ -434,8 +429,9 @@ local function store(storage, image, img_format, temp_name, img_num, total, hq, 
       options = " -/ 256 "..options
     end
 
-    dt.print(_("applying RL-deblur to image ")..output_file.." ...")
-    run_cmd = extra.gmic.." "..temp_name..gmic_operation..options.." -o "..output_file..","..extra.jpg_quality_str
+    dt.print(_("applying RL-deblur to image ")..df.sanitize_filename(tmp_rl_name).." ...")
+    run_cmd = extra.gmic.." "..df.sanitize_filename(temp_name)..gmic_operation..
+              options.." -o "..df.sanitize_filename(tmp_rl_name)..","..extra.jpg_quality_str
 
     dt.print_log(run_cmd)
 
@@ -453,7 +449,7 @@ local function store(storage, image, img_format, temp_name, img_num, total, hq, 
   -- copy exif
   if extra.exiftool ~= "" then
     dt.print(_("copying EXIF to ")..temp_name.." ...")
-    run_cmd = extra.exiftool.." -writeMode cg -TagsFromFile "..org_temp_name.." -all:all -overwrite_original "..df.sanitize_filename(temp_name)
+    run_cmd = extra.exiftool.." -writeMode cg -TagsFromFile "..df.sanitize_filename(org_temp_name).." -all:all -overwrite_original "..df.sanitize_filename(temp_name)
 
     result = dtsys.external_command(run_cmd)
     if result ~= 0 then
@@ -507,9 +503,6 @@ local storage_widget = dt.new_widget("box"){
 
 -- setup export ---------------------------------------------------------------
 local function initialize(storage, img_format, image_table, high_quality, extra)
-  local tmp_rl_name, new_name, run_cmd, result
-  local input_file, output_file, options
-
   -- since we cannot change the bpp, inform user
   if img_format.extension == "tif" and img_format.bpp ~= 16 and img_format.bpp ~= 8 then
     dt.print_log(_("ERROR: Please set TIFF bit depth to 8 or 16"))
