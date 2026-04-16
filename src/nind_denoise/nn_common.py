@@ -126,7 +126,7 @@ class Model:
         if model_path is not None:
             path = Model.complete_path(path=model_path, keyword=keyword, models_dpath=models_dpath)
             if path.endswith('.pth'):
-                model = torch.load(path, map_location=device)
+                model = torch.load(path, map_location=device, weights_only=False)
             elif path.endswith('pt'):
                 assert network is not None
                 model = globals()[network](**parameters)

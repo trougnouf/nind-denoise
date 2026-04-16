@@ -49,9 +49,7 @@ def get_device(device_n=None):
     if isinstance(device_n, torch.device):
         return device_n
     elif isinstance(device_n, str):
-        if device_n == 'cpu':
-            return torch.device('cpu')
-        device_n = int(device_n)
+        return torch.device(device_n)
     if device_n is None:
         if torch.cuda.is_available():
             return torch.device("cuda")
