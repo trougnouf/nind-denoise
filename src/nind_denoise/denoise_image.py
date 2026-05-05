@@ -149,14 +149,14 @@ class OneImageDS(Dataset):
                 if y0pad > 0:  # top-left
                     ret[:, :y0pad, :x0pad] = np.flip(self.inimg[:, :y0pad, :x0pad], axis=(1,2))
                 if y1pad > 0:  # bottom-left
-                    ret[:, -y1pad:, :x0pad] = np.flip(self.inimg[:, -y1pad:, :x0pad], axis=(1,2))
+                    ret[:, self.cs-y1pad:self.cs, :x0pad] = np.flip(self.inimg[:, self.height-y1pad:self.height, :x0pad], axis=(1,2))
             if x1pad > 0:  # right
                 ret[:, y0pad:self.cs-y1pad, self.cs-x1pad:, ] = np.flip(
                     self.inimg[:, y0+y0pad:y1-y1pad, x1-x1pad*2:x1-x1pad], axis=2)
                 if y0pad > 0:  # top-right
                     ret[:, :y0pad, -x1pad:] = np.flip(self.inimg[:, :y0pad, -x1pad:], axis=(1, 2))
                 if y1pad > 0:  # bottom-right
-                    ret[:, -y1pad:, -x1pad:] = np.flip(self.inimg[:, -y1pad:, -x1pad:], axis=(1, 2))
+                    ret[:, self.cs-y1pad:self.cs, self.cs-x1pad:self.cs] = np.flip(self.inimg[:, self.height-y1pad:self.height, self.width-x1pad:self.width], axis=(1, 2))
             if y0pad > 0:
                 ret[:, :y0pad, x0pad:self.cs-x1pad] = np.flip(
                     self.inimg[:, y0+y0pad:y0+y0pad*2, x0+x0pad:x1-x1pad], axis=1)
