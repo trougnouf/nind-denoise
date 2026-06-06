@@ -24,6 +24,7 @@ from PIL import Image, ImageOps
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 import time
+import tempfile
 import configargparse
 from nn_common import Model
 try:
@@ -32,6 +33,7 @@ except ImportError:
     pass
 import subprocess
 import numpy as np
+import cv2
 import sys
 sys.path.append('..')
 from common.libs import pt_helpers
@@ -72,6 +74,72 @@ def autodetect_network_cs_ucs(args) -> None:
             print('Warning: cs and ucs not known for this architecture; values may be sub-optimal')
             args.cs, args.ucs = CS_UNK, UCS_UNK
         print(f'cs={args.cs}, ucs={args.ucs}')
+
+
+def convert_arw_if_needed(input_path: str) -> str:
+    if not input_path.upper().endswith('.ARW'):
+        return input_path
+    try:
+        import rawpy
+    except ImportError:
+        print('Error: rawpy is required to process ARW files.')
+        print('Install it with: uv add rawpy   or   pip install rawpy')
+        sys.exit(1)
+    try:
+        raw = rawpy.imread(input_path)
+    except Exception as e:
+        print(f'Error reading ARW file {input_path}: {e}')
+        sys.exit(1)
+    h, w = raw.raw_image_visible.shape
+    print(f'Detected ARW raw file: {input_path}')
+    make, model = 'N/A', 'N/A'
+    try:
+        result = subprocess.run(
+            ['exiftool', '-s', '-S', '-Make', '-Model', input_path],
+            capture_output=True, text=True, timeout=10)
+        if result.returncode == 0:
+            parts = result.stdout.strip().split('\n')
+            if len(parts) >= 2:
+                make, model = parts[0].strip() or 'N/A', parts[1].strip() or 'N/A'
+            elif len(parts) == 1:
+                make = parts[0].strip() or 'N/A'
+    except Exception:
+        pass
+    print(f'  Camera: {make} {model}')
+    print(f'  Resolution: {w} x {h}')
+    o = raw.other
+    iso = getattr(o, 'iso_speed', None)
+    if iso is not None:
+        print(f'  ISO: {iso}')
+    else:
+        print('  ISO: N/A')
+    shutter = getattr(o, 'shutter_speed', None)
+    if shutter is not None:
+        if shutter < 1.0:
+            denom = int(round(1.0 / shutter))
+            print(f'  Shutter: 1/{denom} s')
+        else:
+            print(f'  Shutter: {shutter:.1f} s')
+    else:
+        print('  Shutter: N/A')
+    aperture = getattr(o, 'aperture', None)
+    if aperture is not None:
+        print(f'  Aperture: f/{aperture:.1f}')
+    else:
+        print('  Aperture: N/A')
+    focal = getattr(o, 'focal_length', None)
+    if focal is not None:
+        print(f'  Focal length: {focal:.0f} mm')
+    else:
+        print('  Focal length: N/A')
+    rgb = raw.postprocess(use_camera_wb=True, output_bps=16)
+    raw.close()
+    fd, tmp_path = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(input_path)), suffix='.tiff')
+    os.close(fd)
+    rgb_bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+    cv2.imwrite(tmp_path, rgb_bgr)
+    print(f'  Converted to temporary TIFF: {tmp_path}')
+    return tmp_path
 
 class OneImageDS(Dataset):
     '''
@@ -204,84 +272,97 @@ if __name__ == '__main__':
     args, _ = parser.parse_known_args()
     assert args.model_path is not None
     autodetect_network_cs_ucs(args)
-    
-    def make_seamless_edges(tcrop, x0, y0):
-        if x0 != 0:#left
-            tcrop[:,:,0:args.overlap] = tcrop[:,:,0:args.overlap].div(2)
-        if y0 != 0:#top
-            tcrop[:,0:args.overlap,:] = tcrop[:,0:args.overlap,:].div(2)
-        if x0 + args.ucs < fswidth and args.overlap:#right
-            tcrop[:,:,-args.overlap:] = tcrop[:,:,-args.overlap:].div(2)
-        if y0 + args.ucs < fsheight and args.overlap:#bottom
-            tcrop[:,-args.overlap:,:] = tcrop[:,-args.overlap:,:].div(2)
-        return tcrop
 
-        if isinstance(args.cuda_device, int) and args.cuda_device >= 0:
+    # Convert ARW to TIFF if needed
+    arw_input = convert_arw_if_needed(args.input)
+    original_input = args.input if arw_input != args.input else None
+    if original_input is not None:
+        args.input = arw_input
+
+    try:
+        if args.output is None:
+            args.output = make_output_fpath(original_input if original_input else args.input, args.model_path)
+
+        def make_seamless_edges(tcrop, x0, y0):
+            if x0 != 0:#left
+                tcrop[:,:,0:args.overlap] = tcrop[:,:,0:args.overlap].div(2)
+            if y0 != 0:#top
+                tcrop[:,0:args.overlap,:] = tcrop[:,0:args.overlap,:].div(2)
+            if x0 + args.ucs < fswidth and args.overlap:#right
+                tcrop[:,:,-args.overlap:] = tcrop[:,:,-args.overlap:].div(2)
+            if y0 + args.ucs < fsheight and args.overlap:#bottom
+                tcrop[:,-args.overlap:,:] = tcrop[:,-args.overlap:,:].div(2)
+            return tcrop
+
+            if isinstance(args.cuda_device, int) and args.cuda_device >= 0:
+                if torch.cuda.is_available():
+                    torch.cuda.set_device(args.cuda_device)
+                    torch.backends.cudnn.benchmark = True
+                    torch.cuda.manual_seed(123)
+                else:
+                    print("warning: PyTorch is not installed with CUDA. Defaulting to CPU.")
+        torch.manual_seed(123)
+        device = pt_helpers.get_device(args.cuda_device)
+
+        # ugly hardcoded hack for now
+        if args.model_parameters is None and 'activation' in args.model_path:
+            args.model_parameters = f"activation={args.model_path.split('activation')[-1].split('_')[1].split('_')[0]}"
+            print(f'set model_parameters to {args.model_parameters} based on model_path')
+        model = Model.instantiate_model(network=args.g_network, model_path=args.model_path,
+                                        strparameters=args.model_parameters, keyword='generator',
+                                        device=device, models_dpath=args.models_dpath)
+        model.eval()  # evaluation mode
+        model = model.to(device)
+        ds = OneImageDS(args.input, args.cs, args.ucs, args.overlap, whole_image=args.whole_image, pad=args.pad)
+        DLoader = DataLoader(dataset=ds,
+                             num_workers=0 if args.batch_size == 1 else max(min(args.batch_size, os.cpu_count()//4), 1),
+                             drop_last=False, batch_size=args.batch_size, shuffle=False)
+        topil = torchvision.transforms.ToPILImage()
+        fswidth, fsheight = Image.open(args.input).size
+        newimg = torch.zeros(3, fsheight, fswidth, dtype=torch.float32)
+
+        start_time = time.time()
+        for n_count, ydat in enumerate(DLoader):
+            print(str(n_count)+'/'+str(int(len(ds)/args.batch_size)))
+            ybatch, usefuldims, usefulstarts = ydat
+            if args.max_subpixels is not None and math.prod(ybatch.shape) > args.max_subpixels:
+                sys.exit(f'denoise_image.py: {ybatch.shape=}, {math.prod(ybatch.shape)=} > {args.max_subpixels=} for {args.input=}; aborting')
+            ybatch = ybatch.to(device)
+            xbatch = model(ybatch)
             if torch.cuda.is_available():
-                torch.cuda.set_device(args.cuda_device)
-                torch.backends.cudnn.benchmark = True
-                torch.cuda.manual_seed(123)
-            else:
-                print("warning: PyTorch is not installed with CUDA. Defaulting to CPU.")
-    torch.manual_seed(123)
-    device = pt_helpers.get_device(args.cuda_device)
-    if args.output is None:
-        args.output = make_output_fpath(args.input, args.model_path)
-
-    # ugly hardcoded hack for now
-    if args.model_parameters is None and 'activation' in args.model_path:
-        args.model_parameters = f"activation={args.model_path.split('activation')[-1].split('_')[1].split('_')[0]}"
-        print(f'set model_parameters to {args.model_parameters} based on model_path')
-    model = Model.instantiate_model(network=args.g_network, model_path=args.model_path,
-                                    strparameters=args.model_parameters, keyword='generator',
-                                    device=device, models_dpath=args.models_dpath)
-    model.eval()  # evaluation mode
-    model = model.to(device)
-    ds = OneImageDS(args.input, args.cs, args.ucs, args.overlap, whole_image=args.whole_image, pad=args.pad)
-    DLoader = DataLoader(dataset=ds,
-                         num_workers=0 if args.batch_size == 1 else max(min(args.batch_size, os.cpu_count()//4), 1),
-                         drop_last=False, batch_size=args.batch_size, shuffle=False)
-    topil = torchvision.transforms.ToPILImage()
-    fswidth, fsheight = Image.open(args.input).size
-    newimg = torch.zeros(3, fsheight, fswidth, dtype=torch.float32)
-
-    start_time = time.time()
-    for n_count, ydat in enumerate(DLoader):
-        print(str(n_count)+'/'+str(int(len(ds)/args.batch_size)))
-        ybatch, usefuldims, usefulstarts = ydat
-        if args.max_subpixels is not None and math.prod(ybatch.shape) > args.max_subpixels:
-            sys.exit(f'denoise_image.py: {ybatch.shape=}, {math.prod(ybatch.shape)=} > {args.max_subpixels=} for {args.input=}; aborting')
-        ybatch = ybatch.to(device)
-        xbatch = model(ybatch)
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
-        for i in range(ybatch.size(0)):
-            ud = usefuldims[i]
-            # pytorch represents images as [channels, height, width]
-            # TODO test leaving on GPU longer
-            # TODO reconstruct image with batch_size > 1
-            tensimg = xbatch[i][:,ud[1]:ud[3], ud[0]:ud[2]].cpu().detach()
-            if args.whole_image:
-                newimg = tensimg
-            else:
-                absx0, absy0 = tuple(usefulstarts[i].tolist())
-                tensimg = make_seamless_edges(tensimg, absx0, absy0)
-                if args.debug:
-                    os.makedirs('dbg', exist_ok=True)
-                    torchvision.utils.save_image(xbatch[i], 'dbg/crop'+str(n_count)+'_'+str(i)+'_denoised.jpg')
-                    torchvision.utils.save_image(tensimg, 'dbg/crop'+str(n_count)+'_'+str(i)+'_tensimg.jpg')
-                    torchvision.utils.save_image(ybatch[i], 'dbg/crop'+str(n_count)+'_'+str(i)+'_noisy.jpg')
-                    print(tensimg.shape)
-                    print((absx0,absy0,ud))
-                newimg[:,absy0:absy0+tensimg.shape[1],absx0:absx0+tensimg.shape[2]] = newimg[:,absy0:absy0+tensimg.shape[1],absx0:absx0+tensimg.shape[2]].add(tensimg)
-    if args.debug:
-        torchvision.utils.save_image(xbatch[i].cpu().detach(), args.output+'dbg_inclborders.tif')  # dbg: get img with borders
-    pt_helpers.tensor_to_imgfile(newimg, args.output)
-    print(f'Denoised image written to {args.output}')
-    if args.output[:-4] == '.jpg' and args.exif_method == 'piexif':
-        piexif.transplant(args.input, args.output)
-    elif args.exif_method != 'noexif':
-        cmd = ['exiftool', '-TagsFromFile', args.input, args.output, '-all', '-icc_profile', '-overwrite_original']
-        subprocess.run(cmd)
-    print(f'Wrote denoised image to {args.output}')
+                torch.cuda.synchronize()
+            for i in range(ybatch.size(0)):
+                ud = usefuldims[i]
+                # pytorch represents images as [channels, height, width]
+                # TODO test leaving on GPU longer
+                # TODO reconstruct image with batch_size > 1
+                tensimg = xbatch[i][:,ud[1]:ud[3], ud[0]:ud[2]].cpu().detach()
+                if args.whole_image:
+                    newimg = tensimg
+                else:
+                    absx0, absy0 = tuple(usefulstarts[i].tolist())
+                    tensimg = make_seamless_edges(tensimg, absx0, absy0)
+                    if args.debug:
+                        os.makedirs('dbg', exist_ok=True)
+                        torchvision.utils.save_image(xbatch[i], 'dbg/crop'+str(n_count)+'_'+str(i)+'_denoised.jpg')
+                        torchvision.utils.save_image(tensimg, 'dbg/crop'+str(n_count)+'_'+str(i)+'_tensimg.jpg')
+                        torchvision.utils.save_image(ybatch[i], 'dbg/crop'+str(n_count)+'_'+str(i)+'_noisy.jpg')
+                        print(tensimg.shape)
+                        print((absx0,absy0,ud))
+                    newimg[:,absy0:absy0+tensimg.shape[1],absx0:absx0+tensimg.shape[2]] = newimg[:,absy0:absy0+tensimg.shape[1],absx0:absx0+tensimg.shape[2]].add(tensimg)
+        if args.debug:
+            torchvision.utils.save_image(xbatch[i].cpu().detach(), args.output+'dbg_inclborders.tif')  # dbg: get img with borders
+        pt_helpers.tensor_to_imgfile(newimg, args.output)
+        print(f'Denoised image written to {args.output}')
+        exif_input = original_input if original_input else args.input
+        if args.output[:-4] == '.jpg' and args.exif_method == 'piexif':
+            piexif.transplant(exif_input, args.output)
+        elif args.exif_method != 'noexif':
+            cmd = ['exiftool', '-TagsFromFile', exif_input, args.output, '-all', '-icc_profile', '-overwrite_original']
+            subprocess.run(cmd)
+        print(f'Wrote denoised image to {args.output}')
+    finally:
+        if original_input is not None and os.path.exists(args.input):
+            os.unlink(args.input)
+            print(f'  Cleaned up temporary TIFF: {args.input}')
     print('Elapsed time: '+str(time.time()-start_time)+' seconds')
