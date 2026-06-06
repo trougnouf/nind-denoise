@@ -1,7 +1,7 @@
 [project]
 name = "nind-denoise"
 version = "0.1.0"
-description = "Add your description here"
+description = "Master thesis on natural image noise removal using Convolutional Neural Networks. Works with the Natural Image Noise Dataset to apply to real photographs, using a UNet network architecture by default."
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
