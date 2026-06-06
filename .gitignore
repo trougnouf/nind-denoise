@@ -1,0 +1,13 @@
+.DS_Store
+.opencode
+openspec
+*.tiff
+*.ARW
+*.CR2
+*.NEF
+*.DNG
+*.RW2
+*.ORF
+*.SR2
+*.PEF
+models/nind_denoise/2021*
